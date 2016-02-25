@@ -14,4 +14,4 @@ setup(name='chat_bot',
       version='1.0',
       description='',
       options=dict(build_exe=buildOptions),
-      executables=executables, requires=['lxml', 'requests', 'cx_Freeze', ])
+      executables=executables, requires=['lxml', 'requests', 'cx_Freeze', 'pyttsx', ])
