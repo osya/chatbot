@@ -221,7 +221,7 @@ if __name__ == '__main__':
                         print message
                         break
                     except sr.UnknownValueError:
-                        print("Google Speech Recognition could not understand audio")
+                        print("Google Speech Recognition could not understand audio. Please repeat")
                         continue
                     except sr.RequestError as e:
                         print("Could not request results from Google Speech Recognition service; {0}".format(e))
