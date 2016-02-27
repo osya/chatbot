@@ -13,11 +13,14 @@ import httplib2
 import logging
 # noinspection PyPackageRequirements
 from PIL import Image, ImageDraw
+import random
+import string
+import urllib
+import winsound
 
 
+# TODO: Use Nuance ASR
 # TODO: Regenerate *.exe
-# TODO:     Instead cv2 requirements
-# TODO: commit
 
 class GoogleCloudVisionClient:
     __base64_image = ''
@@ -101,7 +104,8 @@ class ChatBotClient:
     __bot_name = 'Mitsuku'
     __engine = None
 
-    def __init__(self, _url, _client_name='You', _bot_name='Mitsuku'):
+    def __init__(self, _url, _nuance_app_id, _nuance_app_key, _nuance_tts_uri, _nuance_tts_endpoint,
+                 _client_name='You', _bot_name='Mitsuku'):
         self.__url = _url
         self.__client_name = _client_name
         self.__bot_name = _bot_name
@@ -111,6 +115,13 @@ class ChatBotClient:
         # noinspection SpellCheckingInspection
         voice = [v for v in voices if u'Microsoft Zira Desktop - English (United States)' == v.name][0]
         self.__engine.setProperty('voice', voice.id)
+        self.nuance_app_id = _nuance_app_id
+        self.nuance_app_key = _nuance_app_key
+        self.nuance_tts_uri = _nuance_tts_uri
+        self.nuance_tts_endpoint = _nuance_tts_endpoint
+        self.nuance_tts_lang = 'en_US'
+        self.nuance_voice = 'Susan'
+        self.nuance_id = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(8)])
 
     def send(self, _message):
         resp = requests.post(url, data={'message': _message})
@@ -118,27 +129,42 @@ class ChatBotClient:
         line = tree.xpath('./body/p/font/*')
         answer = line[2].tail
         print '%s:%s' % (self.__bot_name, answer)
-        self.__engine.say(answer)
-        self.__engine.runAndWait()
+        # self.__engine.say(answer)
+        # self.__engine.runAndWait()
+
+        headers = {"Content-Type": "text/plain", "Accept": "audio/x-wav"}
+        params = urllib.urlencode({'appId': self.nuance_app_id, 'appKey': self.nuance_app_key, 'id': self.nuance_id,
+                                   'ttsLang': self.nuance_tts_lang, 'voice': self.nuance_voice})
+        nuance_url = '%s%s?%s' % (self.nuance_tts_uri, self.nuance_tts_endpoint, params)
+        req = requests.post(nuance_url, data=answer, headers=headers)
+        filename = 'tts_%s.wav' % time.strftime("%H_%M_%S")
+        with open(filename, 'wb') as wav_file:
+            wav_file.write(req.content)
+        winsound.PlaySound(filename, winsound.SND_FILENAME)
 
 
 if __name__ == '__main__':
     logging.basicConfig(filename='debug.log', level=logging.DEBUG)
     logger = logging.getLogger('chat_bot')
-
     r = sr.Recognizer()
-    client_name = 'You'
-    # noinspection SpellCheckingInspection
-    url = 'http://fiddle.pandorabots.com/pandora/talk?botid=9fa364f2fe345a10&skin=demochat'
-    client = ChatBotClient(url, client_name, 'Mitsuku')
 
     p = argparse.ArgumentParser()
     p.add_argument('-m', dest='message', help='your message')
     p.add_argument('-s', dest='input_source', help='type or voice', default='type')
     p.add_argument('-i', dest='image_file', help='The image you\'d like to label.', default='image.jpg')
-    p.add_argument("-k", dest='api_key', help='API key', required=True)
-    p.add_argument('--max-results', default=1)
+    p.add_argument("-k", dest='google_api_key', help='Google Cloud Vision API key', required=True)
+    p.add_argument('--max-results', help='Google Cloud Vision max-results', default=1)
+    p.add_argument('--nuance-app-id', help='Nuance App Id')
+    p.add_argument('--nuance-app-key', help='Nuance App Key')
+    p.add_argument('--nuance-tts-uri', help='Nuance TTS URI')
+    p.add_argument('--nuance-tts-endpoint', help='Nuance TTS Endpoint')
     args = p.parse_args()
+
+    client_name = 'You'
+    # noinspection SpellCheckingInspection
+    url = 'http://fiddle.pandorabots.com/pandora/talk?botid=9fa364f2fe345a10&skin=demochat'
+    client = ChatBotClient(url, args.nuance_app_id, args.nuance_app_key, args.nuance_tts_uri,
+                           args.nuance_tts_endpoint, client_name, 'Mitsuku')
 
     if args.input_source not in ['type', 'voice']:
         print 'Wrong parameter value %s for input_source parameter' % args.input_source
