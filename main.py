@@ -19,9 +19,6 @@ import urllib
 import winsound
 
 
-# TODO: Избавиться от сохранения в WAV-файлы
-# TODO: Regenerate *.exe
-
 class GoogleCloudVisionClient:
     __base64_image = ''
     __url = 'https://{api}.googleapis.com/$discovery/rest?version={apiVersion}'
@@ -138,10 +135,7 @@ class ChatBotClient:
             'ttsLang': self.nuance_tts_lang, 'voice': self.nuance_voice})
         nuance_tts_url = '%s%s?%s' % (self.nuance_tts_uri, self.nuance_tts_endpoint, nuance_tts_params)
         nuance_tts_req = requests.post(nuance_tts_url, data=answer, headers=nuance_tts_headers)
-        filename = 'tts_%s.wav' % time.strftime("%H_%M_%S")
-        with open(filename, 'wb') as wav_file:
-            wav_file.write(nuance_tts_req.content)
-        winsound.PlaySound(filename, winsound.SND_FILENAME)
+        winsound.PlaySound(nuance_tts_req.content, winsound.SND_MEMORY)
 
 
 if __name__ == '__main__':
@@ -185,59 +179,53 @@ if __name__ == '__main__':
             if 'type' == args.input_source:
                 message = raw_input('You (type something): ')
             elif 'voice' == args.input_source:
-                while True:
-                    with sr.Microphone() as source:
-                        r.adjust_for_ambient_noise(source)
-                        print 'You (say something):',
-                        audio = r.listen(source)
-                    with open('microphone-results.wav', "wb") as f:
-                        f.write(audio.get_wav_data())
-
-                    with open('microphone-results.wav', 'rb') as asr_file:
-                        asr_file_content = asr_file.read()
-                        randomID = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(8)])
-
-                        # HTTP Request Headers
-                        nuance_asr_headers = {
-                            "Content-Type": "audio/x-wav;codec=pcm;bit=16;rate=8000",
-                            "Content-Length": len(asr_file_content),
-                            "Accept": "text/plain",
-                            # "Transfer-Encoding": "chunked",
-                            "Accept-Topic": "Dictation",
-                            "Accept-Language": "en-US"
-                        }
-
-                        nuance_asr_params = urllib.urlencode({'appId': args.nuance_app_id,
-                                                              'appKey': args.nuance_app_key, 'id': randomID})
-                        nuance_asr_url = '%s%s?%s' % (args.nuance_asr_uri, args.nuance_asr_endpoint, nuance_asr_params)
-                        nuance_asr_req = requests.post(nuance_asr_url, data=asr_file_content,
-                                                       headers=nuance_asr_headers)
-                    if 200 == nuance_asr_req.status_code:
-                        message = nuance_asr_req.text.strip().replace('\n', ', ')
-                        print message
-                        break
-                    else:
-                        print 'Please repeat'
-                        continue
-
                 # while True:
                 #     with sr.Microphone() as source:
                 #         r.adjust_for_ambient_noise(source)
                 #         print 'You (say something):',
                 #         audio = r.listen(source)
-                #     try:
-                #         # for testing purposes, we're just using the default API key to use another API key, use
-                #         # `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
-                #         # instead of `r.recognize_google(audio)`
-                #         message = r.recognize_google(audio)
+                #     randomID = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(8)])
+                #
+                #     # HTTP Request Headers
+                #     nuance_asr_headers = {
+                #         "Content-Type": "audio/x-wav;codec=pcm;bit=16;rate=8000",
+                #         "Content-Length": len(audio.get_wav_data()),
+                #         "Accept": "text/plain",
+                #         "Accept-Topic": "Dictation",
+                #         "Accept-Language": "en-US"
+                #     }
+                #
+                #     nuance_asr_params = urllib.urlencode({'appId': args.nuance_app_id,
+                #                                           'appKey': args.nuance_app_key, 'id': randomID})
+                #     nuance_asr_url = '%s%s?%s' % (args.nuance_asr_uri, args.nuance_asr_endpoint, nuance_asr_params)
+                #     nuance_asr_req = requests.post(nuance_asr_url, data=audio.get_wav_data(),
+                #                                    headers=nuance_asr_headers)
+                #     if 200 == nuance_asr_req.status_code:
+                #         message = nuance_asr_req.text.strip().replace('\n', ', ')
                 #         print message
                 #         break
-                #     except sr.UnknownValueError:
-                #         print("Google Speech Recognition could not understand audio")
+                #     else:
+                #         print 'Please repeat'
                 #         continue
-                #     except sr.RequestError as e:
-                #         print("Could not request results from Google Speech Recognition service; {0}".format(e))
-                #         sys.exit(1)
+
+                while True:
+                    with sr.Microphone() as source:
+                        r.adjust_for_ambient_noise(source)
+                        print 'You (say something):',
+                        audio = r.listen(source)
+                    try:
+                        # for testing purposes, we're just using the default API key to use another API key, use
+                        # `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
+                        # instead of `r.recognize_google(audio)`
+                        message = r.recognize_google(audio)
+                        print message
+                        break
+                    except sr.UnknownValueError:
+                        print("Google Speech Recognition could not understand audio")
+                        continue
+                    except sr.RequestError as e:
+                        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+                        sys.exit(1)
 
             if 'bye' == message.lower():
                 break
