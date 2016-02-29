@@ -85,7 +85,7 @@ class GoogleCloudVisionClient:
         cam = cv2.VideoCapture(0)
         ret, img = cam.read()
         cnt = cv2.imencode('.png', img)[1]
-        self.__base64_image = base64.encodestring(cnt)
+        self.__base64_image = base64.b64encode(cnt)
         cam.release()
 
         res = w.make_detection('LABEL_DETECTION')
@@ -230,7 +230,7 @@ if __name__ == '__main__':
             if 'bye' == message.lower():
                 break
             elif 'look at me' == message.lower():
-                w = GoogleCloudVisionClient(args.api_key, args.max_results)
+                w = GoogleCloudVisionClient(args.google_api_key, args.max_results)
                 labels = w.cam_cap_label()
                 logger.debug('Recognized labels: %s' % labels)
                 client.send(labels)
