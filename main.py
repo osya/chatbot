@@ -233,7 +233,8 @@ if __name__ == '__main__':
                 w = GoogleCloudVisionClient(args.google_api_key, args.max_results)
                 labels = w.cam_cap_label()
                 logger.debug('Recognized labels: %s' % labels)
-                client.send(labels)
+                msg = 'I am a %s' % labels
+                client.send(msg)
             else:
                 client.send(message)
             time.sleep(.3)
